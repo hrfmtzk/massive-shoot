@@ -13,6 +13,7 @@ from aws_lambda_powertools.event_handler.api_gateway import (
     ApiGatewayResolver,
     Response,
 )
+import boto3
 from linebot import (
     LineBotApi,
     WebhookHandler,
@@ -45,6 +46,9 @@ if sentry_dsn:
 line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["CHANNEL_SECRET"])
 
+save_image_queue_url = os.environ["SAVE_IMAGE_QUEUE_URL"]
+sqs = boto3.client("sqs")
+
 
 @app.post("/callback")
 @tracer.capture_method
@@ -74,7 +78,11 @@ def handle_text_message(event: MessageEvent) -> None:
 
 @handler.add(MessageEvent, message=ImageMessage)
 def handle_image_message(event: MessageEvent) -> None:
-    pass
+    res = sqs.send_message(
+        QueueUrl=save_image_queue_url,
+        MessageBody=event.as_json_string(),
+    )
+    logger.debug(res)
 
 
 @handler.default()
