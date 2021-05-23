@@ -21,6 +21,7 @@ setuptools.setup(
         "aws-cdk.aws-lambda-event-sources==1.105.0",
         "aws-cdk.aws-lambda-python==1.105.0",
         "aws-cdk.aws-logs==1.105.0",
+        "aws-cdk.aws-s3==1.105.0",
         "aws-cdk.aws-sqs==1.105.0",
         "aws-cdk.core==1.105.0",
     ],

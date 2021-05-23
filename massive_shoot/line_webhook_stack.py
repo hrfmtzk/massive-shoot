@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_lambda_python as lambda_python,
     aws_logs as logs,
     aws_iam as iam,
+    aws_s3 as s3,
     aws_sqs as sqs,
     core as cdk,
 )
@@ -28,6 +29,14 @@ class LineWebhookStack(cdk.Stack):
         log_level = "DEBUG"
         sentry_dsn = sentry_dsn or ""
 
+        bucket = s3.Bucket(
+            self,
+            "Bucket",
+            bucket_name=f"{service_name}-{self.account}",
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            encryption=s3.BucketEncryption.S3_MANAGED,
+        )
+
         save_image_queue = sqs.Queue(
             self,
             "SaveImageQueue",
@@ -40,16 +49,25 @@ class LineWebhookStack(cdk.Stack):
             index="index.py",
             handler="lambda_handler",
             runtime=lambda_.Runtime.PYTHON_3_8,
+            timeout=cdk.Duration.seconds(10),
             environment={
                 "LOG_LEVEL": log_level,
                 "POWERTOOLS_SERVICE_NAME": service_name,
                 "CHANNEL_ACCESS_TOKEN": channel_access_token,
+                "BUCKET_NAME": bucket.bucket_name,
                 "SENTRY_DSN": sentry_dsn,
             },
             initial_policy=[
                 iam.PolicyStatement(
                     actions=["sqs:DeleteMessageBatch"],
                     resources=[save_image_queue.queue_arn],
+                ),
+                iam.PolicyStatement(
+                    actions=["s3:*"],
+                    resources=[
+                        bucket.bucket_arn,
+                        bucket.bucket_arn + "/*",
+                    ],
                 ),
             ],
             log_retention=logs.RetentionDays.ONE_MONTH,

@@ -1,3 +1,4 @@
+from io import BytesIO
 import json
 import os
 import typing
@@ -10,6 +11,7 @@ from aws_lambda_powertools.utilities.batch import (
     PartialSQSProcessor,
     batch_processor,
 )
+import boto3
 from linebot import LineBotApi
 import sentry_sdk
 from sentry_sdk import capture_exception
@@ -29,10 +31,28 @@ if sentry_dsn:
 
 line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
 
+bucket_name = os.environ["BUCKET_NAME"]
+s3 = boto3.client("s3")
+
 
 def record_handler(record: typing.Dict[str, typing.Any]):
     image_message_event = json.loads(record["body"])
     logger.debug(image_message_event)
+
+    message_id = image_message_event["message"]["id"]
+    user_id = image_message_event["source"]["userId"]
+
+    object_key = f"{user_id}/{message_id}"
+    message_content = line_bot_api.get_message_content(message_id)
+
+    s3.upload_fileobj(
+        Fileobj=BytesIO(message_content.content),
+        Bucket=bucket_name,
+        Key=object_key,
+        ExtraArgs={
+            "ContentType": message_content.content_type,
+        },
+    )
 
 
 class SQSProcessor(PartialSQSProcessor):
