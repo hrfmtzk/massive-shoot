@@ -1,3 +1,4 @@
+import json
 import os
 import typing
 
@@ -10,9 +11,12 @@ from aws_lambda_powertools.logging import (
 )
 from aws_lambda_powertools.event_handler.api_gateway import (
     ApiGatewayResolver,
+    Response,
 )
 import sentry_sdk
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
+
+from models import image
 
 
 tracer = Tracer()
@@ -27,11 +31,26 @@ if sentry_dsn:
         traces_sample_rate=1.0,
     )
 
+image_base_url = os.environ["IMAGE_BASE_URL"]
+if not image_base_url.endswith("/"):
+    image_base_url += "/"
+
 
 @app.get("/images")
 @tracer.capture_method
 def get_handler():
-    return {"message": "OK"}
+    images = [
+        image.convert_respones_image(item, image_base_url)
+        for item in image.get_all_items()
+    ]
+    return Response(
+        status_code=200,
+        content_type="application/json",
+        body=json.dumps(images, separators=(",", ":")),
+        headers={
+            "X-Content-Length": len(images),
+        },
+    )
 
 
 @logger.inject_lambda_context(

@@ -36,6 +36,7 @@ persistence = PersistenceStack(
 ApiStack(
     app,
     "Api",
+    table=persistence.table,
     service_name=service_name,
     line_login_channel_id=line_login_channel_id,
     sentry_dsn=sentry_dsn,

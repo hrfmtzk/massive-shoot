@@ -3,6 +3,8 @@ import typing
 
 from aws_cdk import (
     aws_apigateway as apigateway,
+    aws_dynamodb as dynamodb,
+    aws_iam as iam,
     aws_lambda as lambda_,
     aws_lambda_python as lambda_python,
     aws_logs as logs,
@@ -15,6 +17,7 @@ class ApiStack(cdk.Stack):
         self,
         scope: cdk.Construct,
         construct_id: str,
+        table: dynamodb.Table,
         service_name: str,
         line_login_channel_id: str,
         sentry_dsn: typing.Optional[str] = None,
@@ -46,6 +49,13 @@ class ApiStack(cdk.Stack):
             handler=authorizer_function,
         )
 
+        layer = lambda_python.PythonLayerVersion(
+            self,
+            "Layer",
+            entry="src/layers/api_package",
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_8],
+        )
+
         get_images_function = lambda_python.PythonFunction(
             self,
             "GetImagesFunction",
@@ -53,12 +63,29 @@ class ApiStack(cdk.Stack):
             index="index.py",
             handler="lambda_handler",
             runtime=lambda_.Runtime.PYTHON_3_8,
+            layers=[layer],
             timeout=cdk.Duration.seconds(3),
             environment={
                 "LOG_LEVEL": log_level,
                 "POWERTOOLS_SERVICE_NAME": service_name,
+                "TABLE_NAME": table.table_name,
+                "TABLE_REGION": self.region,
+                "IMAGE_BASE_URL": "https://image.example.com",
                 "SENTRY_DSN": sentry_dsn,
             },
+            initial_policy=[
+                iam.PolicyStatement(
+                    actions=[
+                        "dynamodb:BatchGetItem",
+                        "dynamodb:Describe*",
+                        "dynamodb:List*",
+                        "dynamodb:GetItem",
+                        "dynamodb:Query",
+                        "dynamodb:Scan",
+                    ],
+                    resources=[table.table_arn],
+                ),
+            ],
             log_retention=logs.RetentionDays.ONE_MONTH,
         )
 
