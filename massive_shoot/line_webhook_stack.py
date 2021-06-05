@@ -2,6 +2,7 @@ import typing
 
 from aws_cdk import (
     aws_apigateway as apigateway,
+    aws_dynamodb as dynamodb,
     aws_lambda as lambda_,
     aws_lambda_event_sources as lambda_event_sources,
     aws_lambda_python as lambda_python,
@@ -18,6 +19,8 @@ class LineWebhookStack(cdk.Stack):
         self,
         scope: cdk.Construct,
         construct_id: str,
+        bucket: s3.Bucket,
+        table: dynamodb.Table,
         service_name: str,
         channel_access_token: str,
         channel_secret: str,
@@ -28,14 +31,6 @@ class LineWebhookStack(cdk.Stack):
 
         log_level = "DEBUG"
         sentry_dsn = sentry_dsn or ""
-
-        bucket = s3.Bucket(
-            self,
-            "Bucket",
-            bucket_name=f"{service_name}-{self.account}",
-            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
-            encryption=s3.BucketEncryption.S3_MANAGED,
-        )
 
         save_image_queue = sqs.Queue(
             self,
@@ -55,6 +50,7 @@ class LineWebhookStack(cdk.Stack):
                 "POWERTOOLS_SERVICE_NAME": service_name,
                 "CHANNEL_ACCESS_TOKEN": channel_access_token,
                 "BUCKET_NAME": bucket.bucket_name,
+                "TABLE_NAME": table.table_name,
                 "SENTRY_DSN": sentry_dsn,
             },
             initial_policy=[
@@ -68,6 +64,10 @@ class LineWebhookStack(cdk.Stack):
                         bucket.bucket_arn,
                         bucket.bucket_arn + "/*",
                     ],
+                ),
+                iam.PolicyStatement(
+                    actions=["dynamodb:*"],
+                    resources=[table.table_arn],
                 ),
             ],
             log_retention=logs.RetentionDays.ONE_MONTH,

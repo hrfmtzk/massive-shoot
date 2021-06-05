@@ -34,15 +34,20 @@ line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
 bucket_name = os.environ["BUCKET_NAME"]
 s3 = boto3.client("s3")
 
+table_name = os.environ["TABLE_NAME"]
+dynamodb = boto3.client("dynamodb")
+
 
 def record_handler(record: typing.Dict[str, typing.Any]):
     image_message_event = json.loads(record["body"])
     logger.debug(image_message_event)
 
     message_id = image_message_event["message"]["id"]
+    image_id = f"L{message_id}"
     user_id = image_message_event["source"]["userId"]
+    unix_time = image_message_event["timestamp"] / 1000.0
 
-    object_key = f"{user_id}/{message_id}"
+    object_key = f"{user_id}/{image_id}"
     message_content = line_bot_api.get_message_content(message_id)
 
     s3.upload_fileobj(
@@ -51,6 +56,17 @@ def record_handler(record: typing.Dict[str, typing.Any]):
         Key=object_key,
         ExtraArgs={
             "ContentType": message_content.content_type,
+        },
+    )
+
+    dynamodb.put_item(
+        TableName=table_name,
+        Item={
+            "UserId": {"S": user_id},
+            "ImageId": {"S": image_id},
+            "Created": {"N": str(unix_time)},
+            "ContentType": {"S": message_content.content_type},
+            "ObjectKey": {"S": object_key},
         },
     )
 

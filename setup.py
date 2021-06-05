@@ -16,6 +16,7 @@ setuptools.setup(
     packages=setuptools.find_packages(where="massive_shoot"),
     install_requires=[
         "aws-cdk.aws-apigateway==1.105.0",
+        "aws-cdk.aws-dynamodb==1.105.0",
         "aws-cdk.aws-iam==1.105.0",
         "aws-cdk.aws-lambda==1.105.0",
         "aws-cdk.aws-lambda-event-sources==1.105.0",

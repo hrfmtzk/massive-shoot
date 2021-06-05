@@ -9,6 +9,7 @@ from dotenv import (
 
 from massive_shoot.api_stack import ApiStack
 from massive_shoot.line_webhook_stack import LineWebhookStack
+from massive_shoot.persistence_stack import PersistenceStack
 
 
 load_dotenv(find_dotenv())
@@ -21,6 +22,16 @@ line_login_channel_id = os.environ["LINE_LOGIN_CHANNEL_ID"]
 sentry_dsn = os.environ.get("SENTRY_DSN")
 
 app = cdk.App()
+
+persistence = PersistenceStack(
+    app,
+    "Persistence",
+    service_name=service_name,
+    env=cdk.Environment(
+        account=app.account,
+        region=region,
+    ),
+)
 
 ApiStack(
     app,
@@ -37,6 +48,8 @@ ApiStack(
 LineWebhookStack(
     app,
     "LineWebhook",
+    bucket=persistence.bucket,
+    table=persistence.table,
     service_name=service_name,
     channel_access_token=line_channel_access_token,
     channel_secret=line_channel_secret,
