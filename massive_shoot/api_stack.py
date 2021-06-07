@@ -20,6 +20,7 @@ class ApiStack(cdk.Stack):
         table: dynamodb.Table,
         service_name: str,
         line_login_channel_id: str,
+        hosting_image_domain: str,
         sentry_dsn: typing.Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -70,7 +71,7 @@ class ApiStack(cdk.Stack):
                 "POWERTOOLS_SERVICE_NAME": service_name,
                 "TABLE_NAME": table.table_name,
                 "TABLE_REGION": self.region,
-                "IMAGE_BASE_URL": "https://image.example.com",
+                "IMAGE_BASE_URL": "https://" + hosting_image_domain,
                 "SENTRY_DSN": sentry_dsn,
             },
             initial_policy=[
