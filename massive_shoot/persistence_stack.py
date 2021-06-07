@@ -20,6 +20,13 @@ class PersistenceStack(cdk.Stack):
             "Bucket",
             bucket_name=f"{service_name}-{self.account}-images",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            cors=[
+                s3.CorsRule(
+                    allowed_headers=["*"],
+                    allowed_methods=[s3.HttpMethods.GET],
+                    allowed_origins=["*"],
+                )
+            ],
             encryption=s3.BucketEncryption.S3_MANAGED,
         )
 

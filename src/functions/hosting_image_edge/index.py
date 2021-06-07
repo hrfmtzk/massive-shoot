@@ -33,6 +33,10 @@ def verify_token(token: str) -> bool:
 
 def lambda_handler(event, context) -> typing.Dict[str, typing.Any]:
     request = event["Records"][0]["cf"]["request"]
+
+    if request["method"] == "OPTIONS":
+        return request
+
     headers = request["headers"]
 
     authorization: str = headers.get("authorization", [{"value": None}])[0][

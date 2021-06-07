@@ -37,6 +37,8 @@ class HostingImageStack(cdk.Stack):
                 origin=origins.S3Origin(
                     bucket=bucket,
                 ),
+                origin_request_policy=cloudfront.OriginRequestPolicy.CORS_S3_ORIGIN,  # noqa
+                allowed_methods=cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,  # noqa
                 edge_lambdas=[
                     cloudfront.EdgeLambda(
                         function_version=function.current_version,
