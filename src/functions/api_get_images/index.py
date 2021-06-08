@@ -11,6 +11,7 @@ from aws_lambda_powertools.logging import (
 )
 from aws_lambda_powertools.event_handler.api_gateway import (
     ApiGatewayResolver,
+    CORSConfig,
     Response,
 )
 import sentry_sdk
@@ -21,7 +22,9 @@ from models import image
 
 tracer = Tracer()
 logger = Logger()
-app = ApiGatewayResolver()
+
+cors_config = CORSConfig()
+app = ApiGatewayResolver(cors=cors_config)
 
 sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:

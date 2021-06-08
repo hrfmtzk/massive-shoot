@@ -93,6 +93,10 @@ class ApiStack(cdk.Stack):
         api = apigateway.RestApi(
             self,
             "Api",
+            default_cors_preflight_options=apigateway.CorsOptions(
+                allow_origins=apigateway.Cors.ALL_ORIGINS,
+                allow_methods=apigateway.Cors.ALL_METHODS,
+            ),
         )
         api.add_gateway_response(
             "AccessDenied",
