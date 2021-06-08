@@ -99,14 +99,19 @@ def generate_policy(
 def lambda_handler(event, context) -> typing.Dict[str, typing.Any]:
     logger.debug(event)
 
-    token = event["authorizationToken"]
+    token: str = event["authorizationToken"]
 
     context = {}
-    try:
-        verify = verify_token(token)
-    except UnverifiedError as e:
+    if not token.startswith("Bearer "):
         verify = False
-        context["message"] = e.message
+        context["message"] = "Authorization type is not Bearer"
+    else:
+        token = token.split(" ", 1)[1]
+        try:
+            verify = verify_token(token)
+        except UnverifiedError as e:
+            verify = False
+            context["message"] = e.message
 
     if verify:
         context = get_profile(token)
