@@ -31,6 +31,10 @@ if sentry_dsn:
 
 line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
 
+save_image_prefix = os.environ["SAVE_IMAGE_PREFIX"]
+if save_image_prefix.endswith("/"):
+    save_image_prefix = save_image_prefix[:-1]
+
 bucket_name = os.environ["BUCKET_NAME"]
 s3 = boto3.client("s3")
 
@@ -47,7 +51,7 @@ def record_handler(record: typing.Dict[str, typing.Any]):
     user_id = image_message_event["source"]["userId"]
     unix_time = image_message_event["timestamp"] / 1000.0
 
-    object_key = f"{user_id}/{image_id}"
+    object_key = f"{save_image_prefix}/original/{user_id}/{image_id}"
     message_content = line_bot_api.get_message_content(message_id)
 
     s3.upload_fileobj(

@@ -24,6 +24,7 @@ class LineWebhookStack(cdk.Stack):
         service_name: str,
         channel_access_token: str,
         channel_secret: str,
+        save_image_prefix: str,
         sentry_dsn: typing.Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -49,6 +50,7 @@ class LineWebhookStack(cdk.Stack):
                 "LOG_LEVEL": log_level,
                 "POWERTOOLS_SERVICE_NAME": service_name,
                 "CHANNEL_ACCESS_TOKEN": channel_access_token,
+                "SAVE_IMAGE_PREFIX": save_image_prefix,
                 "BUCKET_NAME": bucket.bucket_name,
                 "TABLE_NAME": table.table_name,
                 "SENTRY_DSN": sentry_dsn,
