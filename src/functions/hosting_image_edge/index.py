@@ -1,3 +1,4 @@
+from distutils.util import strtobool
 import typing
 from urllib import (
     error,
@@ -11,6 +12,9 @@ FORBIDDEN_RESPONSE = {
     "statusDescription": "Forbidden",
     "body": "Forbidden",
 }
+
+save_image_prefix = ".images"
+hosting_image_prefix = "images"
 
 
 def verify_token(token: str) -> bool:
@@ -31,8 +35,35 @@ def verify_token(token: str) -> bool:
     return True
 
 
+def change_origin_request(
+    request: typing.Dict[str, typing.Any]
+) -> typing.Dict[str, typing.Any]:
+    uri: str = request["uri"]
+
+    if not uri.startswith(f"/{hosting_image_prefix}"):
+        return request
+
+    new_uri = f"/{save_image_prefix}/"
+
+    query = parse.parse_qs(request["querystring"])
+    thumbnail = strtobool(query.get("thumbnail", ["false"])[0])
+    if thumbnail:
+        new_uri += "original_format/400/"
+    else:
+        new_uri += "original/"
+
+    user_id, image_id = uri[len(hosting_image_prefix) + 2 :].split("/")
+    new_uri += f"{user_id}/{image_id}"
+
+    request["uri"] = new_uri
+
+    return request
+
+
 def lambda_handler(event, context) -> typing.Dict[str, typing.Any]:
     request = event["Records"][0]["cf"]["request"]
+
+    request = change_origin_request(request)
 
     if request["method"] == "OPTIONS":
         return request

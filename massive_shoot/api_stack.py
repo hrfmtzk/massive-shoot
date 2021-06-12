@@ -21,6 +21,7 @@ class ApiStack(cdk.Stack):
         service_name: str,
         line_login_channel_id: str,
         hosting_image_domain: str,
+        hosting_image_prefix: str,
         sentry_dsn: typing.Optional[str] = None,
         **kwargs,
     ) -> None:
@@ -72,6 +73,7 @@ class ApiStack(cdk.Stack):
                 "TABLE_NAME": table.table_name,
                 "TABLE_REGION": self.region,
                 "IMAGE_BASE_URL": "https://" + hosting_image_domain,
+                "IMAGE_PREFIX": hosting_image_prefix,
                 "SENTRY_DSN": sentry_dsn,
             },
             initial_policy=[

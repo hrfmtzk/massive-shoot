@@ -24,7 +24,8 @@ hosting_image_domain = os.environ["HOSTING_IMAGE_DOMAIN"]
 hosting_image_acm_arn = os.environ["HOSTING_IMAGE_ACM_ARN"]
 sentry_dsn = os.environ.get("SENTRY_DSN")
 
-save_image_prefix = "images"
+save_image_prefix = ".images"
+hosting_image_prefix = "images"
 
 app = cdk.App()
 
@@ -32,6 +33,8 @@ persistence = PersistenceStack(
     app,
     "Persistence",
     service_name=service_name,
+    save_image_prefix=save_image_prefix,
+    sentry_dsn=sentry_dsn,
     env=cdk.Environment(
         account=app.account,
         region=region,
@@ -45,6 +48,7 @@ ApiStack(
     service_name=service_name,
     line_login_channel_id=line_login_channel_id,
     hosting_image_domain=hosting_image_domain,
+    hosting_image_prefix=hosting_image_prefix,
     sentry_dsn=sentry_dsn,
     env=cdk.Environment(
         account=app.account,

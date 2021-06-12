@@ -38,12 +38,16 @@ image_base_url = os.environ["IMAGE_BASE_URL"]
 if not image_base_url.endswith("/"):
     image_base_url += "/"
 
+image_prefix = os.environ["IMAGE_PREFIX"]
+if image_prefix.endswith("/"):
+    image_prefix = image_prefix[:-1]
+
 
 @app.get("/images")
 @tracer.capture_method
 def get_handler():
     images = [
-        image.convert_respones_image(item, image_base_url)
+        image.convert_respones_image(item, image_base_url, image_prefix)
         for item in image.get_all_items()
     ]
     return Response(

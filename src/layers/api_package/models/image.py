@@ -23,7 +23,6 @@ class ImageModel(Model):
     user_id = UnicodeAttribute(hash_key=True, attr_name="UserId")
     image_id = UnicodeAttribute(range_key=True, attr_name="ImageId")
     content_type = UnicodeAttribute(attr_name="ContentType")
-    object_key = UnicodeAttribute(attr_name="ObjectKey")
     created = NumberAttribute(attr_name="Created")
 
 
@@ -40,10 +39,11 @@ def get_all_items():
 def convert_respones_image(
     item: ImageModel,
     base_url: str,
+    image_prefix: str,
 ) -> typing.Dict[str, typing.Any]:
     return {
         "id": item.image_id,
-        "url": base_url + item.object_key,
+        "url": base_url + "/".join([image_prefix, item.user_id, item.image_id]),
         "timestamp": datetime.fromtimestamp(
             item.created, timezone.utc
         ).isoformat(),

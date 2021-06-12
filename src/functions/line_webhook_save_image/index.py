@@ -70,7 +70,6 @@ def record_handler(record: typing.Dict[str, typing.Any]):
             "ImageId": {"S": image_id},
             "Created": {"N": str(unix_time)},
             "ContentType": {"S": message_content.content_type},
-            "ObjectKey": {"S": object_key},
         },
     )
 
