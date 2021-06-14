@@ -8,6 +8,8 @@ from aws_cdk import (
 )
 from aws_cdk.aws_cloudfront import experimental
 
+from massive_shoot.config import ProjectConfig
+
 
 class HostingImageStack(cdk.Stack):
     def __init__(
@@ -15,8 +17,7 @@ class HostingImageStack(cdk.Stack):
         scope: cdk.Construct,
         construct_id: str,
         bucket: s3.Bucket,
-        domain: str,
-        acm_arn: str,
+        project_config: ProjectConfig,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -46,10 +47,10 @@ class HostingImageStack(cdk.Stack):
                     ),
                 ],
             ),
-            domain_names=[domain],
+            domain_names=[project_config.hosting_image_domain],
             certificate=acm.Certificate.from_certificate_arn(
                 self,
                 "Certification",
-                certificate_arn=acm_arn,
+                certificate_arn=project_config.hosting_image_acm_arn,
             ),
         )

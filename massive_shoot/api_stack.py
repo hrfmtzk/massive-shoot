@@ -1,5 +1,4 @@
 import json
-import typing
 
 from aws_cdk import (
     aws_apigateway as apigateway,
@@ -11,6 +10,8 @@ from aws_cdk import (
     core as cdk,
 )
 
+from massive_shoot.config import ProjectConfig
+
 
 class ApiStack(cdk.Stack):
     def __init__(
@@ -18,16 +19,10 @@ class ApiStack(cdk.Stack):
         scope: cdk.Construct,
         construct_id: str,
         table: dynamodb.Table,
-        service_name: str,
-        line_login_channel_id: str,
-        hosting_image_domain: str,
-        hosting_image_prefix: str,
-        sentry_dsn: typing.Optional[str] = None,
+        project_config: ProjectConfig,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
-        log_level = "DEBUG"
 
         authorizer_function = lambda_python.PythonFunction(
             self,
@@ -38,10 +33,10 @@ class ApiStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_8,
             timeout=cdk.Duration.seconds(3),
             environment={
-                "LOG_LEVEL": log_level,
-                "POWERTOOLS_SERVICE_NAME": service_name,
-                "LINE_LOGIN_CHANNEL_ID": line_login_channel_id,
-                "SENTRY_DSN": sentry_dsn,
+                "LOG_LEVEL": project_config.log_level,
+                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
+                "LINE_LOGIN_CHANNEL_ID": project_config.line_login_channel_id,
+                "SENTRY_DSN": project_config.sentry_dsn,
             },
             log_retention=logs.RetentionDays.ONE_MONTH,
         )
@@ -68,13 +63,14 @@ class ApiStack(cdk.Stack):
             layers=[layer],
             timeout=cdk.Duration.seconds(3),
             environment={
-                "LOG_LEVEL": log_level,
-                "POWERTOOLS_SERVICE_NAME": service_name,
+                "LOG_LEVEL": project_config.log_level,
+                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
                 "TABLE_NAME": table.table_name,
                 "TABLE_REGION": self.region,
-                "IMAGE_BASE_URL": "https://" + hosting_image_domain,
-                "IMAGE_PREFIX": hosting_image_prefix,
-                "SENTRY_DSN": sentry_dsn,
+                "IMAGE_BASE_URL": "https://"
+                + project_config.hosting_image_domain,
+                "IMAGE_PREFIX": project_config.hosting_image_prefix,
+                "SENTRY_DSN": project_config.sentry_dsn,
             },
             initial_policy=[
                 iam.PolicyStatement(

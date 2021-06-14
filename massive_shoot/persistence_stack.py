@@ -1,5 +1,3 @@
-import typing
-
 from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_lambda as lambda_,
@@ -11,26 +9,23 @@ from aws_cdk import (
     core as cdk,
 )
 
+from massive_shoot.config import ProjectConfig
+
 
 class PersistenceStack(cdk.Stack):
     def __init__(
         self,
         scope: cdk.Construct,
         construct_id: str,
-        service_name: str,
-        save_image_prefix: str,
-        sentry_dsn: typing.Optional[str] = None,
+        project_config: ProjectConfig,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        log_level = "DEBUG"
-        sentry_dsn = sentry_dsn or ""
-
         self.bucket = s3.Bucket(
             self,
             "Bucket",
-            bucket_name=f"{service_name}-{self.account}-images",
+            bucket_name=f"{project_config.service_name}-{self.account}-images",
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             cors=[
                 s3.CorsRule(
@@ -45,7 +40,7 @@ class PersistenceStack(cdk.Stack):
         self.table = dynamodb.Table(
             self,
             "Table",
-            table_name=service_name,
+            table_name=project_config.service_name,
             partition_key=dynamodb.Attribute(
                 name="UserId",
                 type=dynamodb.AttributeType.STRING,
@@ -66,10 +61,10 @@ class PersistenceStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_8,
             timeout=cdk.Duration.seconds(10),
             environment={
-                "LOG_LEVEL": log_level,
-                "POWERTOOLS_SERVICE_NAME": service_name,
-                "SAVE_IMAGE_PREFIX": save_image_prefix,
-                "SENTRY_DSN": sentry_dsn,
+                "LOG_LEVEL": project_config.log_level,
+                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
+                "SAVE_IMAGE_PREFIX": project_config.save_image_prefix,
+                "SENTRY_DSN": project_config.sentry_dsn,
             },
             initial_policy=[
                 iam.PolicyStatement(
@@ -88,7 +83,7 @@ class PersistenceStack(cdk.Stack):
                 events=[s3.EventType.OBJECT_CREATED],
                 filters=[
                     s3.NotificationKeyFilter(
-                        prefix=f"{save_image_prefix}/original",
+                        prefix=f"{project_config.save_image_prefix}/original",
                     )
                 ],
             ),

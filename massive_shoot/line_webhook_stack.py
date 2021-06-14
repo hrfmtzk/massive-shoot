@@ -1,5 +1,3 @@
-import typing
-
 from aws_cdk import (
     aws_apigateway as apigateway,
     aws_dynamodb as dynamodb,
@@ -13,6 +11,8 @@ from aws_cdk import (
     core as cdk,
 )
 
+from massive_shoot.config import ProjectConfig
+
 
 class LineWebhookStack(cdk.Stack):
     def __init__(
@@ -21,17 +21,10 @@ class LineWebhookStack(cdk.Stack):
         construct_id: str,
         bucket: s3.Bucket,
         table: dynamodb.Table,
-        service_name: str,
-        channel_access_token: str,
-        channel_secret: str,
-        save_image_prefix: str,
-        sentry_dsn: typing.Optional[str] = None,
+        project_config: ProjectConfig,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
-
-        log_level = "DEBUG"
-        sentry_dsn = sentry_dsn or ""
 
         save_image_queue = sqs.Queue(
             self,
@@ -47,13 +40,13 @@ class LineWebhookStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_8,
             timeout=cdk.Duration.seconds(10),
             environment={
-                "LOG_LEVEL": log_level,
-                "POWERTOOLS_SERVICE_NAME": service_name,
-                "CHANNEL_ACCESS_TOKEN": channel_access_token,
-                "SAVE_IMAGE_PREFIX": save_image_prefix,
+                "LOG_LEVEL": project_config.log_level,
+                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
+                "CHANNEL_ACCESS_TOKEN": project_config.line_channel_access_token,  # noqa
+                "SAVE_IMAGE_PREFIX": project_config.save_image_prefix,
                 "BUCKET_NAME": bucket.bucket_name,
                 "TABLE_NAME": table.table_name,
-                "SENTRY_DSN": sentry_dsn,
+                "SENTRY_DSN": project_config.sentry_dsn,
             },
             initial_policy=[
                 iam.PolicyStatement(
@@ -88,12 +81,12 @@ class LineWebhookStack(cdk.Stack):
             handler="lambda_handler",
             runtime=lambda_.Runtime.PYTHON_3_8,
             environment={
-                "LOG_LEVEL": log_level,
-                "POWERTOOLS_SERVICE_NAME": service_name,
-                "CHANNEL_ACCESS_TOKEN": channel_access_token,
-                "CHANNEL_SECRET": channel_secret,
+                "LOG_LEVEL": project_config.log_level,
+                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
+                "CHANNEL_ACCESS_TOKEN": project_config.line_channel_access_token,  # noqa
+                "CHANNEL_SECRET": project_config.line_channel_secret,
                 "SAVE_IMAGE_QUEUE_URL": save_image_queue.queue_url,
-                "SENTRY_DSN": sentry_dsn,
+                "SENTRY_DSN": project_config.sentry_dsn,
             },
             initial_policy=[
                 iam.PolicyStatement(
