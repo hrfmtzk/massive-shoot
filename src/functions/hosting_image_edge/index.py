@@ -16,6 +16,14 @@ FORBIDDEN_RESPONSE = {
 save_image_prefix = ".images"
 hosting_image_prefix = "images"
 
+path_map = {
+    # (support_webp, thumbnail): path
+    (True, True): "webp/400/",
+    (True, False): "webp/original_size/",
+    (False, True): "original_format/400/",
+    (False, False): "original/",
+}
+
 
 def verify_token(token: str) -> bool:
     endpoint = "https://api.line.me/oauth2/v2.1/verify"
@@ -43,14 +51,19 @@ def change_origin_request(
     if not uri.startswith(f"/{hosting_image_prefix}"):
         return request
 
-    new_uri = f"/{save_image_prefix}/"
+    headers = request["headers"]
+    accept: str = headers.get("accept", [{"value": "*/*"}])[0]["value"]
+    support_webp = False
+    try:
+        accept.split(";")[0].split(",").index("image/webp")
+        support_webp = True
+    except ValueError:
+        pass
 
     query = parse.parse_qs(request["querystring"])
     thumbnail = strtobool(query.get("thumbnail", ["false"])[0])
-    if thumbnail:
-        new_uri += "original_format/400/"
-    else:
-        new_uri += "original/"
+
+    new_uri = f"/{save_image_prefix}/" + path_map[support_webp, thumbnail]
 
     user_id, image_id = uri[len(hosting_image_prefix) + 2 :].split("/")
     new_uri += f"{user_id}/{image_id}"
