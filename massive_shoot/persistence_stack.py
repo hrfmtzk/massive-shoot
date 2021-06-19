@@ -1,11 +1,8 @@
 from aws_cdk import (
     aws_dynamodb as dynamodb,
-    aws_lambda as lambda_,
-    aws_lambda_event_sources as lambda_event_sources,
-    aws_lambda_python as lambda_python,
-    aws_logs as logs,
-    aws_iam as iam,
     aws_s3 as s3,
+    aws_s3_notifications as notifications,
+    aws_sns as sns,
     core as cdk,
 )
 
@@ -22,6 +19,11 @@ class PersistenceStack(cdk.Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        self.original_image_created_topic = sns.Topic(
+            self,
+            "OriginalImageCreatedTopic",
+        )
+
         self.bucket = s3.Bucket(
             self,
             "Bucket",
@@ -35,6 +37,12 @@ class PersistenceStack(cdk.Stack):
                 )
             ],
             encryption=s3.BucketEncryption.S3_MANAGED,
+        )
+        self.bucket.add_object_created_notification(
+            notifications.SnsDestination(self.original_image_created_topic),
+            s3.NotificationKeyFilter(
+                prefix=f"{project_config.save_image_prefix}/original/",
+            ),
         )
 
         self.table = dynamodb.Table(
@@ -50,41 +58,4 @@ class PersistenceStack(cdk.Stack):
                 type=dynamodb.AttributeType.STRING,
             ),
             encryption=dynamodb.TableEncryption.AWS_MANAGED,
-        )
-
-        resize_image_function = lambda_python.PythonFunction(
-            self,
-            "ResizeImageFunction",
-            entry="src/functions/persistence_resize_image",
-            index="index.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_8,
-            timeout=cdk.Duration.seconds(10),
-            environment={
-                "LOG_LEVEL": project_config.log_level,
-                "POWERTOOLS_SERVICE_NAME": project_config.service_name,
-                "SAVE_IMAGE_PREFIX": project_config.save_image_prefix,
-                "SENTRY_DSN": project_config.sentry_dsn,
-            },
-            initial_policy=[
-                iam.PolicyStatement(
-                    actions=["s3:*"],
-                    resources=[
-                        self.bucket.bucket_arn,
-                        self.bucket.bucket_arn + "/*",
-                    ],
-                ),
-            ],
-            log_retention=logs.RetentionDays.ONE_MONTH,
-        )
-        resize_image_function.add_event_source(
-            lambda_event_sources.S3EventSource(
-                bucket=self.bucket,
-                events=[s3.EventType.OBJECT_CREATED],
-                filters=[
-                    s3.NotificationKeyFilter(
-                        prefix=f"{project_config.save_image_prefix}/original",
-                    )
-                ],
-            ),
         )

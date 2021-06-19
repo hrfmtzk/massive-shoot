@@ -1,4 +1,4 @@
-from io import BytesIO
+from io import BytesIO, SEEK_SET
 import json
 import os
 import typing
@@ -12,7 +12,7 @@ from aws_lambda_powertools.utilities.batch import (
     batch_processor,
 )
 import boto3
-from linebot import LineBotApi
+from PIL import Image
 import sentry_sdk
 from sentry_sdk import capture_exception
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
@@ -29,41 +29,51 @@ if sentry_dsn:
         traces_sample_rate=1.0,
     )
 
-line_bot_api = LineBotApi(os.environ["CHANNEL_ACCESS_TOKEN"])
-
 save_image_prefix = os.environ["SAVE_IMAGE_PREFIX"]
 if save_image_prefix.endswith("/"):
     save_image_prefix = save_image_prefix[:-1]
 
-bucket_name = os.environ["BUCKET_NAME"]
 s3 = boto3.client("s3")
 
 
 def record_handler(record: typing.Dict[str, typing.Any]):
-    image_message_event = json.loads(record["body"])
-    logger.debug(image_message_event)
+    notification = json.loads(record["body"])
+    create_object_event = json.loads(notification["Message"])["Records"][0]
+    logger.debug(create_object_event)
 
-    message_id = image_message_event["message"]["id"]
-    image_id = f"L{message_id}"
-    user_id = image_message_event["source"]["userId"]
-    unix_time = image_message_event["timestamp"] / 1000.0
+    bucket_name = create_object_event["s3"]["bucket"]["name"]
+    object_key = create_object_event["s3"]["object"]["key"]
 
-    object_key = f"{save_image_prefix}/original/{user_id}/{image_id}"
-    message_content = line_bot_api.get_message_content(message_id)
+    head_response = s3.head_object(Bucket=bucket_name, Key=object_key)
+    logger.debug(head_response)
+    metadata = head_response["Metadata"]
 
-    s3.upload_fileobj(
-        Fileobj=BytesIO(message_content.content),
-        Bucket=bucket_name,
-        Key=object_key,
-        ExtraArgs={
-            "ContentType": message_content.content_type,
-            "Metadata": {
-                "UserId": user_id,
-                "ImageId": image_id,
-                "Created": str(unix_time),
-            },
-        },
-    )
+    with BytesIO() as rbuf:
+        s3.download_fileobj(
+            Bucket=bucket_name,
+            Key=object_key,
+            Fileobj=rbuf,
+        )
+        with Image.open(rbuf) as image, BytesIO() as wbuf:
+            image.save(wbuf, "WEBP")
+            wbuf.seek(SEEK_SET)
+            s3.upload_fileobj(
+                Bucket=bucket_name,
+                Key="/".join(
+                    [
+                        save_image_prefix,
+                        "webp",
+                        "original_size",
+                        metadata["userid"],
+                        metadata["imageid"],
+                    ]
+                ),
+                Fileobj=wbuf,
+                ExtraArgs={
+                    "ContentType": "image/webp",
+                    "Metadata": metadata,
+                },
+            )
 
 
 class SQSProcessor(PartialSQSProcessor):

@@ -47,6 +47,7 @@ LineWebhookStack(
     app,
     "LineWebhook",
     bucket=persistence.bucket,
+    original_image_created_topic=persistence.original_image_created_topic,
     table=persistence.table,
     project_config=project_config,
     env=cdk.Environment(

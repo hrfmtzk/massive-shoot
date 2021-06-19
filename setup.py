@@ -26,6 +26,8 @@ setuptools.setup(
         "aws-cdk.aws-lambda-python==1.108.1",
         "aws-cdk.aws-logs==1.108.1",
         "aws-cdk.aws-s3==1.108.1",
+        "aws-cdk.aws-s3-notifications==1.108.1",
+        "aws-cdk.aws-sns==1.108.1",
         "aws-cdk.aws-sqs==1.108.1",
         "aws-cdk.core==1.108.1",
     ],
